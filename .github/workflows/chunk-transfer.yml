@@ -1,0 +1,38 @@
+name: Chunk transfer payload
+on:
+  push:
+    branches: [main]
+    paths:
+      - ddf.enc
+      - .github/workflows/chunk-transfer.yml
+permissions:
+  contents: write
+jobs:
+  chunk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build text chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf parts
+          mkdir -p parts/raw
+          split -b 450000 -d -a 2 ddf.enc parts/raw/part
+          for f in parts/raw/part*; do
+            b="$(basename "$f")"
+            base64 -w0 "$f" > "parts/$b.b64"
+          done
+          rm -rf parts/raw
+          sha256sum ddf.enc > parts/ENCRYPTED_SHA256.txt
+          wc -c ddf.enc | awk '{print $1}' > parts/ENCRYPTED_SIZE.txt
+      - name: Commit chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add parts
+          git diff --cached --quiet && exit 0
+          git commit -m "Chunk encrypted transfer payload [skip parts]"
+          git push
