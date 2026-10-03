@@ -1,34 +1,21 @@
-name: Export encrypted DDF text chunks
+name: Export encrypted DDF artifact
 on:
   push:
     branches: [main]
+    paths:
+      - .github/workflows/export.yml
 permissions:
-  contents: write
+  contents: read
 jobs:
   export:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Export
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p export
-          base64 -w 0 ddf.enc > export/ddf.enc.b64
-          split -b 1800000 -d -a 2 export/ddf.enc.b64 export/part_
-          rm export/ddf.enc.b64
-          sha256sum ddf.enc > export/ENCRYPTED_SHA256.txt
-          wc -c export/part_* > export/PART_SIZES.txt
-          git config user.name "ddf-transfer-bot"
-          git config user.email "noreply@users.noreply.github.com"
-          git add export
-          git commit -m "Export encrypted DDF chunks [skip ci]"
-          git push
-
-      - name: Upload encrypted artifact
+      - name: Verify payload
+        run: sha256sum ddf.enc
+      - name: Upload payload
         uses: actions/upload-artifact@v4
         with:
           name: ddf-encrypted-bridge
           path: ddf.enc
-          if-no-files-found: error
           retention-days: 1
