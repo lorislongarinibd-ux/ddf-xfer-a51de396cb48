@@ -1,0 +1,4 @@
+1800000 export/part_00
+1800000 export/part_01
+1331480 export/part_02
+4931480 total
