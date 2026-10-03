@@ -1,0 +1,26 @@
+name: Export encrypted DDF text chunks
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export
+          base64 -w 0 ddf.enc > export/ddf.enc.b64
+          split -b 1800000 -d -a 2 export/ddf.enc.b64 export/part_
+          rm export/ddf.enc.b64
+          sha256sum ddf.enc > export/ENCRYPTED_SHA256.txt
+          wc -c export/part_* > export/PART_SIZES.txt
+          git config user.name "ddf-transfer-bot"
+          git config user.email "noreply@users.noreply.github.com"
+          git add export
+          git commit -m "Export encrypted DDF chunks [skip ci]"
+          git push
